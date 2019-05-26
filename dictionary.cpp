@@ -314,6 +314,19 @@ class Dictionary
 			if(height()!=dict.height()) return false;	//simple cases
 			equals(root, dict.root);
 		}
+		Info operator[] (Key k)
+		{
+			if(isempty()) return 0;
+			Iterator it(*this);
+			while(!it.finished())	//while iterator can still iterate
+			{
+				if(!it>k) --it;
+				else if(!it<k) ++it;
+				else return *it;
+			}
+			if(!it==k) return *it;	//final chance
+			return 0;
+		}
 		void remove(Key k)	//call "remove" function
 		{
 			if(isempty()) return;
@@ -448,7 +461,6 @@ void stresstest(Key arr1[], Info arr2[], int j, Key r1, Key r2, Key r3, Key k, I
 	cout<<"Preorder:"<<endl;
 	dict.preorder();
 	key();
-	cout<<"Copy constructor: "<<endl;
 	Dictionary<Key, Info> copy(dict);
 	if(!(copy==dict))
 	{
@@ -548,6 +560,10 @@ void stresstest(Key arr1[], Info arr2[], int j, Key r1, Key r2, Key r3, Key k, I
 		cout<<arr2[l]<<" ";
 	}
 	cout<<endl<<"Are all found in the tree"<<endl;
+	key();
+	cout<<"Info at "<<r1<<" "<<r2<<" "<<r3<<endl;
+	cout<<dict[r1]<<" "<<dict[r2]<<" "<<dict[r3]<<endl;
+	cout<<"Copy constructor: "<<endl;
 	key();
 	cout<<"Test iterator, traverse right then left"<<endl;
 	dict.printree();
