@@ -587,6 +587,12 @@ void stresstest(Key arr1[], Info arr2[], int j, Key r1, Key r2, Key r3, Key k, I
 			key();
 			return;
 		}
+		if(dict[!iterator]!=*iterator)
+		{
+			cout<<"Iterator fault, aborting"<<endl;
+			key();
+			return;
+		}
 		cout<<dict.search(*iterator)<<" elements with info "<<*iterator<<" in the tree"<<endl;
 		if(!dict.seek(!iterator))
 		{
@@ -609,6 +615,12 @@ void stresstest(Key arr1[], Info arr2[], int j, Key r1, Key r2, Key r3, Key k, I
 			return;
 		}
 		if(!dict.search(*iterator))
+		{
+			cout<<"Iterator fault, aborting"<<endl;
+			key();
+			return;
+		}
+		if(dict[!iterator]!=*iterator)
 		{
 			cout<<"Iterator fault, aborting"<<endl;
 			key();
