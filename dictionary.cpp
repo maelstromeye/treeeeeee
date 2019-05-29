@@ -257,16 +257,113 @@ class Dictionary
 		class Iterator				//tree iterator
 		{
 			private:
-				Node* curr, *start;			//current state
+				Node* curr, **start;			//current state
+				
 			public:
 				Iterator() {curr=NULL; start=NULL;}			//default constructor
-				Iterator(Dictionary<Key, Info> &dict){curr=dict.root; start=curr;}	//construct and assign to object
+				Iterator(Dictionary<Key, Info> &dict)
+				{
+					if(dict.isempty())
+					{
+						curr=NULL;
+						start=NULL;
+						return;
+					}
+					curr=dict.root;
+					start=&dict.root;
+					while(curr->left) curr=curr->left;
+				}	//construct and assign to object
 				~Iterator(){curr=NULL; start=NULL;}
-				Iterator operator++(){if(curr) curr=curr->right; return *this;}	//next element
-				Iterator operator--(){if(curr) curr=curr->left; return *this;}	//previous element
+				Iterator operator++()	//next element
+				{
+					if(finished()||!*start) return *this;
+					if(curr->right)
+					{
+						for(curr=curr->right; curr->left; curr=curr->left);
+						return *this;
+					}
+					Node* nodeptr=*start;
+					while(1)
+					{
+						if(curr==nodeptr->right)
+						{
+							curr=nodeptr;
+							nodeptr=*start;
+							continue;
+						}
+						if(curr==nodeptr->left)
+						{
+							curr=nodeptr;
+							return *this;
+						}
+						if(curr->key>nodeptr->key)
+						{
+							nodeptr=nodeptr->right;
+							continue;
+						}
+						if(curr->key<nodeptr->key)
+						{
+							nodeptr=nodeptr->left;
+							continue;
+						}
+						curr=NULL;
+						return *this;
+					}
+				}
+				Iterator operator--()	//prev element
+				{
+					if(finished()||!*start) return *this;
+					if(curr->left)
+					{
+						for(curr=curr->left; curr->right; curr=curr->right);
+						return *this;
+					}
+					Node* nodeptr=*start;
+					while(1)
+					{
+						if(curr==nodeptr->left)
+						{
+							curr=nodeptr;
+							nodeptr=*start;
+							continue;
+						}
+						if(curr==nodeptr->right)
+						{
+							curr=nodeptr;
+							return *this;
+						}
+						if(curr->key>nodeptr->key)
+						{
+							nodeptr=nodeptr->right;
+							continue;
+						}
+						if(curr->key<nodeptr->key)
+						{
+							nodeptr=nodeptr->left;
+							continue;
+						}
+						curr=NULL;
+						return *this;
+					}
+				}
+				bool operator==(Iterator it){if(!start) return it.start; if((*start==*it.start)&&(curr==it.curr)) return true; return false;}
+				Iterator operator=(Dictionary<Key, Info>::Iterator &it){start=it.start; curr=it.curr; return *this;}	//assignment
+				Iterator(Dictionary<Key, Info>::Iterator &it){start=it.start; curr=it.curr;}	
+				Iterator begin()		//lowest el in tree
+				{
+					if(!start||!curr) return *this;
+					curr=*start;
+					while(curr->left) curr=curr->left; 
+				}
+				Iterator end()		//highest el in tree
+				{
+					if(!start||!curr) return *this;
+					curr=*start;
+					while(curr->right) curr=curr->right;
+				}
 				Key operator!(){if(curr) return curr->key; else return 0;}	//access key
 				Info operator*(){if(curr) return curr->info; else return 0;}	//access info
-				void reset(){curr=start;}	//back to origin
+				void reset(){if(!start) return; curr=*start;}	//back to origin
 				bool finished(){return !curr;}	//nowhere else to go
 		};
 		Dictionary()	//default constructor
@@ -374,11 +471,10 @@ class Dictionary
 			Iterator it(*this);
 			while(!it.finished())	//while iterator can still iterate
 			{
-				if(!it>k) --it;
-				else if(!it<k) ++it;
-				else return true;
+				if(!it==k) return true;
+				if(!it<k) ++it;
+				else break;
 			}
-			if(!it==k) return true;	//final chance
 			return false;
 		}
 		int search(Info i)	//return number of elements with Info i
@@ -461,6 +557,7 @@ void stresstest(Key arr1[], Info arr2[], int j, Key r1, Key r2, Key r3, Key k, I
 	cout<<"Preorder:"<<endl;
 	dict.preorder();
 	key();
+	cout<<"Copy constructor:"<<endl;
 	Dictionary<Key, Info> copy(dict);
 	if(!(copy==dict))
 	{
@@ -565,22 +662,17 @@ void stresstest(Key arr1[], Info arr2[], int j, Key r1, Key r2, Key r3, Key k, I
 	cout<<dict[r1]<<" "<<dict[r2]<<" "<<dict[r3]<<endl;
 	cout<<"Copy constructor: "<<endl;
 	key();
-	cout<<"Test iterator, traverse right then left"<<endl;
+	cout<<"Test iterator, traverse upwards then downwards"<<endl;
 	dict.printree();
-	if((dict.rootkey()!=!iterator)||(dict.rootinf()!=*iterator))
+	if(dict.leftmost()!=!iterator)
 	{
 		cout<<"Iterator fault, aborting"<<endl;
 		key();
 		return;
 	}
-	while((!iterator)!=dict.rightmost())
+	Key prev=!iterator;
+	while(!iterator.finished())
 	{
-		if(iterator.finished())
-		{
-			cout<<"Iterator fault, aborting"<<endl;
-			key();
-			return;
-		}
 		if(!dict.search(*iterator))
 		{
 			cout<<"Iterator fault, aborting"<<endl;
@@ -593,27 +685,24 @@ void stresstest(Key arr1[], Info arr2[], int j, Key r1, Key r2, Key r3, Key k, I
 			key();
 			return;
 		}
-		cout<<dict.search(*iterator)<<" elements with info "<<*iterator<<" in the tree"<<endl;
 		if(!dict.seek(!iterator))
 		{
 			cout<<"Iterator fault, aborting"<<endl;
 			key();
 			return;
 		}
-		cout<<"Element with key "<<!iterator<<" found in the tree"<<endl;
+		prev=!iterator;
 		++iterator;
-	}
-	cout<<"Iterator traverse right ok, traverse left"<<endl;
-	iterator.reset();
-	key();
-	while((!iterator)!=dict.leftmost())
-	{
-		if(iterator.finished())
+		if((!iterator.finished())&&!iterator<=prev)
 		{
 			cout<<"Iterator fault, aborting"<<endl;
 			key();
 			return;
 		}
+	}
+	iterator.end();
+	while(!iterator.finished())
+	{
 		if(!dict.search(*iterator))
 		{
 			cout<<"Iterator fault, aborting"<<endl;
@@ -626,15 +715,20 @@ void stresstest(Key arr1[], Info arr2[], int j, Key r1, Key r2, Key r3, Key k, I
 			key();
 			return;
 		}
-		cout<<dict.search(*iterator)<<" elements with info "<<*iterator<<" in the tree"<<endl;
 		if(!dict.seek(!iterator))
 		{
 			cout<<"Iterator fault, aborting"<<endl;
 			key();
 			return;
 		}
-		cout<<"Element with key "<<!iterator<<" found in the tree"<<endl;
+		prev=!iterator;
 		--iterator;
+		if((!iterator.finished())&&!iterator>=prev)
+		{
+			cout<<"Iterator fault, aborting"<<endl;
+			key();
+			return;
+		}
 	}
 	cout<<"Iterator ok"<<endl;
 	key();
@@ -670,8 +764,6 @@ int main()
 	int arr3[]={11, 23, 34};
 	int arr4[]={69,45,32,43,67,87,34,54,12,44,65,37,18,33,30,36,20,50,60,80,49,40,42,98,99,96,23,55,38,76,47,56,77,21,22,25,57,75,51,11,29,95};
 	int arr5[]={8, 9, 2, 3, 2, 2, 1, 1, 1,12,69, 4,32,11, 3, 6,43, 2,33,8, 9, 2, 3, 2, 2, 1, 1, 1,12,69, 4,32,11, 3, 6,43, 2,33,8, 9, 2, 3, 2, 2, 1, 1, 1,12,69, 4,32,11, 3, 6,43, 2,33};
-	Dictionary<int,int> dict1(arr1, arr2, 19);
-	Dictionary<int,int> dict3(arr1, arr2, 19);
 	stresstest(arr1, arr2, 18, 22, 11, 54, 59, 69);
 	stresstest(arr3, arr2, 3, 11, 23, 34, 59, 90);
 	stresstest(arr2, arr3, 0, 11, 23, 1, 2, 4);
